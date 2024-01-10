@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::dom::{AttrMap, elem, Node, text};
+use crate::dom::{AttrMap, comment, elem, Node, text};
 
 pub fn parse(source: String) -> Node {
     let mut nodes = Parser::new(0, source).parse_nodes();
@@ -8,6 +8,7 @@ pub fn parse(source: String) -> Node {
     if nodes.len() == 1 {
         return nodes.swap_remove(0);
     }
+
     return elem("html".to_string(), HashMap::new(), nodes);
 }
 
@@ -27,6 +28,11 @@ impl Parser {
 
     fn next_char(&self) -> char {
         self.input[self.pos..].chars().next().unwrap()
+    }
+
+    fn next_two_char(&self) -> (char, char) {
+        let mut chars = self.input[self.pos..].chars();
+        (chars.next().unwrap(), chars.next().unwrap())
     }
 
     fn starts_with(&self, s: &str) -> bool {
@@ -66,14 +72,28 @@ impl Parser {
     }
 
     fn parse_node(&mut self) -> Node {
-        match self.next_char() {
-            '<' => self.parse_element(),
+        match self.next_two_char() {
+            ('<', '!') => self.parse_comment(),
+            ('<', _) => self.parse_element(),
             _ => self.parse_text(),
         }
     }
 
     fn parse_text(&mut self) -> Node {
         text(self.consume_while(|c| c != '<'))
+    }
+
+    fn parse_comment(&mut self) -> Node {
+        assert_eq!(self.consume_char(), '<');
+        assert_eq!(self.consume_char(), '!');
+        assert_eq!(self.consume_char(), '-');
+        assert_eq!(self.consume_char(), '-');
+        let content = self.consume_while(|c| c != '-');
+        assert_eq!(self.consume_char(), '-');
+        assert_eq!(self.consume_char(), '-');
+        assert_eq!(self.consume_char(), '>');
+
+        return comment(content);
     }
 
     fn parse_element(&mut self) -> Node {
@@ -136,7 +156,7 @@ impl Parser {
 #[cfg(test)]
 mod test_html {
     use crate::dom::NodeType;
-    use crate::html::parse;
+    use crate::html::{parse, Parser};
 
     #[test]
     fn test_parse() {
@@ -147,9 +167,8 @@ mod test_html {
                 assert_eq!(data.tag_name, "html".to_string());
                 assert_eq!(data.attributes.len(), 0);
             }
-            NodeType::Text(_) => panic!("error")
+            _ => panic!("error"),
         }
-
         for node in nodes.children {
             match node.node_type {
                 NodeType::Element(data) => {
@@ -160,8 +179,53 @@ mod test_html {
                     let (key, value) = data.attributes.get_key_value("id").unwrap();
                     println!("attribute:key={},value={}", key, value);
                 }
-                NodeType::Text(_) => panic!("error")
+                _ => panic!("error")
             }
+        }
+    }
+
+    #[test]
+    fn test_parse_with_comment() {
+        let source = "<html><!-- 这是一行注释! --><body id=\"name\">Hello World</body></html>".to_string();
+        let nodes = parse(source);
+        match nodes.node_type {
+            NodeType::Element(data) => {
+                assert_eq!(data.tag_name, "html".to_string());
+                assert_eq!(data.attributes.len(), 0);
+            }
+            _ => panic!("error"),
+        }
+        println!("{}", nodes.children.len());
+        for node in nodes.children {
+            match node.node_type {
+                NodeType::Element(data) => {
+                    assert_eq!(data.tag_name, "body".to_string());
+                    assert_eq!(data.attributes.contains_key("id"), true);
+                    assert_eq!(data.attributes.get("id").unwrap(), "name");
+                    println!("tag_name:{}", data.tag_name);
+                    let (key, value) = data.attributes.get_key_value("id").unwrap();
+                    println!("attribute:key={},value={}", key, value);
+                }
+                NodeType::Comment(data) => {
+                    assert_eq!(data, " 这是一行注释! ")
+                }
+                _ => panic!("error")
+            }
+        }
+    }
+
+
+    #[test]
+    fn test_next_two_char() {
+        let node = Parser {
+            pos: 0,
+            input: "abc".to_string(),
+        };
+        assert_eq!(node.next_two_char(), ('a', 'b'));
+        match node.next_two_char() {
+            ('a', 'b') => assert!(true),
+            ('a', _) => panic!("error"),
+            _ => panic!("error"),
         }
     }
 }
