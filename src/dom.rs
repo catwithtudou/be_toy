@@ -1,35 +1,35 @@
 use std::collections::HashMap;
-use crate::dom::NodeType::Element;
 
-struct Node {
-    children: Vec<Node>,
-    node_type: NodeType,
+pub struct Node {
+    pub children: Vec<Node>,
+    pub node_type: NodeType,
 }
 
-enum NodeType {
+pub enum NodeType {
     Text(String),
     Element(ElementData),
 }
 
-struct ElementData {
-    tag_name: String,
-    attributes: AttrMap,
+#[derive(Debug)]
+pub struct ElementData {
+    pub tag_name: String,
+    pub attributes: AttrMap,
 }
 
-type AttrMap = HashMap<String, String>;
+pub type AttrMap = HashMap<String, String>;
 
 
-fn text(data: String) -> Node {
+pub fn text(data: String) -> Node {
     Node {
         children: Vec::new(),
         node_type: NodeType::Text(data),
     }
 }
 
-fn elem(name: String, attrs: AttrMap, cd: Vec<Node>) -> Node {
+pub fn elem(name: String, attrs: AttrMap, cd: Vec<Node>) -> Node {
     Node {
         children: cd,
-        node_type: Element(ElementData {
+        node_type: NodeType::Element(ElementData {
             tag_name: name,
             attributes: attrs,
         }),
