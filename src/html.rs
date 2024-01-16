@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::dom::{AttrMap, comment, elem, Node, text};
 
-pub fn parse(source: String) -> Node {
+pub fn parse_html(source: String) -> Node {
     let mut nodes = Parser::new(0, source).parse_nodes();
 
     if nodes.len() == 1 {
@@ -156,12 +156,12 @@ impl Parser {
 #[cfg(test)]
 mod test_html {
     use crate::dom::NodeType;
-    use crate::html::{parse, Parser};
+    use crate::html::{parse_html, Parser};
 
     #[test]
     fn test_parse() {
         let source = "<html><body id=\"name\">Hello World</body></html>".to_string();
-        let nodes = parse(source);
+        let nodes = parse_html(source);
         match nodes.node_type {
             NodeType::Element(data) => {
                 assert_eq!(data.tag_name, "html".to_string());
@@ -187,7 +187,7 @@ mod test_html {
     #[test]
     fn test_parse_with_comment() {
         let source = "<html><!-- 这是一行注释! --><body id=\"name\">Hello World</body></html>".to_string();
-        let nodes = parse(source);
+        let nodes = parse_html(source);
         match nodes.node_type {
             NodeType::Element(data) => {
                 assert_eq!(data.tag_name, "html".to_string());
