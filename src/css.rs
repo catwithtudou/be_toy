@@ -4,7 +4,9 @@
 
 pub fn parse_css(source: String) -> Stylesheet {
     let mut parser = Parser::new(0, source);
-    Stylesheet { rules: parser.parse_rules() }
+    let res = Stylesheet { rules: parser.parse_rules() };
+    println!("{}", res.rules.len());
+    res
 }
 
 #[derive(Debug)]
